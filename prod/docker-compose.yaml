@@ -1,0 +1,198 @@
+version: "3.9"
+
+services:
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    mem_reservation: 1024m
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - default
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    mem_reservation: 1024m
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - default
+    depends_on:
+      - rabbitmq
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      RABBIT_QUEUE: zipkin-queue
+      RABBIT_ADDRESSES: rabbitmq:5672
+      RABBIT_PASSWORD: guest
+      RABBIT_USER: guest
+
+
+
+  configs:
+    image: pkarugu/config-server:latest
+    mem_reservation: 1024m
+    container_name: ms-config-server
+    ports:
+      - "8050:8050"
+    networks:
+      - default
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      SPRING_ZIPKIN_BASEURL: http://zipkin:9411/
+      SPRING_ZIPKIN_SENDER_TYPE: rabbit
+      SPRING_ZIPKIN_RABBITMQ_QUEUE: zipkin-queue
+
+  eureka:
+    image: pkarugu/eureka-server:latest
+    mem_reservation: 1024m
+    container_name: ms-eureka-server
+    ports:
+      - "8055:8055"
+    networks:
+      - default
+    depends_on:
+      - configs
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_CONFIG_IMPORT: configserver:http://configs:8050/
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      SPRING_ZIPKIN_BASEURL: http://zipkin:9411/
+      SPRING_ZIPKIN_SENDER_TYPE: rabbit
+      SPRING_ZIPKIN_RABBITMQ_QUEUE: zipkin-queue
+
+  accounts:
+    image: pkarugu/banking-accounts:latest
+    mem_reservation: 1024m
+    container_name: ms-banking-accounts
+    ports:
+      - "8080:8080"
+    networks:
+      - default
+    depends_on:
+      - configs
+      - eureka
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 15s
+        max_attempts: 3
+        window: 150s
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_CONFIG_IMPORT: configserver:http://configs:8050/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8055/eureka/
+      SPRING_ZIPKIN_BASEURL: http://zipkin:9411/
+      SPRING_ZIPKIN_RABBITMQ_QUEUE: zipkin-queue
+      SPRING_ZIPKIN_SENDER_TYPE: rabbit
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+
+  loans:
+    image: pkarugu/banking-loans:latest
+    mem_reservation: 1024m
+    container_name: ms-banking-loans
+    ports:
+      - "8090:8090"
+    networks:
+      - default
+    depends_on:
+      - configs
+      - eureka
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 20s
+        max_attempts: 3
+        window: 180s
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_CONFIG_IMPORT: configserver:http://configs:8050/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8055/eureka/
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      SPRING_ZIPKIN_BASEURL: http://zipkin:9411/
+      SPRING_ZIPKIN_SENDER_TYPE: rabbit
+      SPRING_ZIPKIN_RABBITMQ_QUEUE: zipkin-queue
+
+  cards:
+    image: pkarugu/banking-cards:latest
+    mem_reservation: 1024m
+    container_name: ms-banking-cards
+    ports:
+      - "8070:8070"
+    networks:
+      - default
+    depends_on:
+      - configs
+      - eureka
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 25s
+        max_attempts: 3
+        window: 210s
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_CONFIG_IMPORT: configserver:http://configs:8050/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8055/eureka/
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      SPRING_ZIPKIN_BASEURL: http://zipkin:9411/
+      SPRING_ZIPKIN_SENDER_TYPE: rabbit
+      SPRING_ZIPKIN_RABBITMQ_QUEUE: zipkin-queue
+
+  api-gateway:
+    image: pkarugu/gateway-server:latest
+    mem_reservation: 1024m
+    container_name: ms-gateway-server
+    ports:
+      - "8057:8057"
+    networks:
+      - default
+    depends_on:
+      - configs
+      - eureka
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 30s
+        max_attempts: 3
+        window: 240s
+    environment:
+      SPRING_CONFIG_IMPORT: configserver:http://configs:8050/
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8055/eureka/
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      SPRING_ZIPKIN_BASEURL: http://zipkin:9411/
+      SPRING_ZIPKIN_SENDER_TYPE: rabbit
+      SPRING_ZIPKIN_RABBITMQ_QUEUE: zipkin-queue
+
+networks:
+  default:
+    name: banking-network-prod
+
+
