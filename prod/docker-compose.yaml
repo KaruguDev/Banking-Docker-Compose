@@ -81,7 +81,7 @@ services:
     mem_reservation: 1024m
     container_name: ms-banking-accounts
     ports:
-      - "8080:8080"
+      - "8085:8085"
     networks:
       - default
     depends_on:

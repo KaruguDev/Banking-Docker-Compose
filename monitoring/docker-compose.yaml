@@ -1,6 +1,16 @@
 version: "3.9"
 
 services:
+  prometheus:
+    image: prom/prometheus:latest
+    mem_reservation: 1024m
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - default
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -23,7 +33,7 @@ services:
     depends_on:
       - rabbitmq
     environment:
-      SPRING_PROFILES_ACTIVE: dev
+      SPRING_PROFILES_ACTIVE: default
       RABBIT_QUEUE: zipkin-queue
       RABBIT_ADDRESSES: rabbitmq:5672
       RABBIT_PASSWORD: guest
@@ -40,7 +50,7 @@ services:
     networks:
       - default
     environment:
-      SPRING_PROFILES_ACTIVE: dev
+      SPRING_PROFILES_ACTIVE: default
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: guest
@@ -58,15 +68,15 @@ services:
     networks:
       - default
     depends_on:
-      - configs
+        - configs
     deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 10s
-        max_attempts: 3
-        window: 120s
+        restart_policy:
+            condition: on-failure
+            delay: 10s
+            max_attempts: 3
+            window: 120s
     environment:
-      SPRING_PROFILES_ACTIVE: dev
+      SPRING_PROFILES_ACTIVE: default
       SPRING_CONFIG_IMPORT: configserver:http://configs:8050/
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
@@ -75,7 +85,7 @@ services:
       SPRING_ZIPKIN_BASEURL: http://zipkin:9411/
       SPRING_ZIPKIN_SENDER_TYPE: rabbit
       SPRING_ZIPKIN_RABBITMQ_QUEUE: zipkin-queue
-
+      
   accounts:
     image: pkarugu/banking-accounts:latest
     mem_reservation: 1024m
@@ -85,16 +95,16 @@ services:
     networks:
       - default
     depends_on:
-      - configs
-      - eureka
+        - configs
+        - eureka
     deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 15s
-        max_attempts: 3
-        window: 150s
+        restart_policy:
+            condition: on-failure
+            delay: 15s
+            max_attempts: 3
+            window: 150s
     environment:
-      SPRING_PROFILES_ACTIVE: dev
+      SPRING_PROFILES_ACTIVE: default
       SPRING_CONFIG_IMPORT: configserver:http://configs:8050/
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8055/eureka/
       SPRING_ZIPKIN_BASEURL: http://zipkin:9411/
@@ -123,7 +133,7 @@ services:
         max_attempts: 3
         window: 180s
     environment:
-      SPRING_PROFILES_ACTIVE: dev
+      SPRING_PROFILES_ACTIVE: default
       SPRING_CONFIG_IMPORT: configserver:http://configs:8050/
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8055/eureka/
       SPRING_RABBITMQ_HOST: rabbitmq
@@ -152,7 +162,7 @@ services:
         max_attempts: 3
         window: 210s
     environment:
-      SPRING_PROFILES_ACTIVE: dev
+      SPRING_PROFILES_ACTIVE: default
       SPRING_CONFIG_IMPORT: configserver:http://configs:8050/
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8055/eureka/
       SPRING_RABBITMQ_HOST: rabbitmq
@@ -193,6 +203,6 @@ services:
 
 networks:
   default:
-    name: banking-network-dev
+    name: banking-network-default
 
 

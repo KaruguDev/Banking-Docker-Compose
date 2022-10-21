@@ -1,6 +1,27 @@
 version: "3.9"
 
 services:
+  prometheus:
+    image: prom/prometheus:latest
+    mem_reservation: 1024m
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - default
+
+  grafana:
+    image: grafana/grafana:latest
+    mem_reservation: 1024m
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - default
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -9,6 +30,8 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    volumes:
+      - '~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/mnesia/'
     networks:
       - default
 
@@ -28,8 +51,6 @@ services:
       RABBIT_ADDRESSES: rabbitmq:5672
       RABBIT_PASSWORD: guest
       RABBIT_USER: guest
-
-
 
   configs:
     image: pkarugu/config-server:latest
@@ -81,7 +102,7 @@ services:
     mem_reservation: 1024m
     container_name: ms-banking-accounts
     ports:
-      - "8080:8080"
+      - "8085:8085"
     networks:
       - default
     depends_on:

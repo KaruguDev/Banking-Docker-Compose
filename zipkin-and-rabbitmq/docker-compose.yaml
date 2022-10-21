@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    mem_reservation: 1024m
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - default
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    mem_reservation: 1024m
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - '~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/mnesia/'
+    networks:
+      - default
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    mem_reservation: 1024m
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - default
+    depends_on:
+      - rabbitmq
+    environment:
+      SPRING_PROFILES_ACTIVE: default
+      RABBIT_QUEUE: zipkin-queue
+      RABBIT_ADDRESSES: rabbitmq:5672
+      RABBIT_PASSWORD: guest
+      RABBIT_USER: guest
+
+networks:
+  default:
+    name: banking-network-default
+
+
